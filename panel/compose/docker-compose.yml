@@ -1,17 +1,20 @@
-version: '3.8'
 x-common:
   database:
     &db-environment
     # Do not remove the "&db-password" from the end of the line below, it is important
     # for Panel functionality.
-    MYSQL_PASSWORD: &db-password "CHANGE_ME"
-    MYSQL_ROOT_PASSWORD: "CHANGE_ME"
+    MYSQL_PASSWORD: &db-password "${MYSQL_PASSWORD}"
+    MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
   panel:
     &panel-environment
-    APP_URL: "https://panel.example.com"
+    APP_URL: "http://${PANEL_DOMAIN}" # Set to http if you are not using HTTPS (localhost)
+    # Source: https://github.com/EdyTheCow/docker-pterodactyl/issues/28
+    APP_KEY: "${APP_KEY}"
     # A list of valid timezones can be found here: http://php.net/manual/en/timezones.php
     APP_TIMEZONE: "UTC"
     APP_SERVICE_AUTHOR: "admin@example.com"
+    # See here for more information: https://pterodactyl.io/panel/1.0/additional_configuration.html#telemetry
+    PTERODACTYL_TELEMETRY_ENABLED: false
   mail:
     &mail-environment
     MAIL_FROM: "noreply@example.com"
@@ -33,13 +36,13 @@ x-common:
 services:
 
   database:
-    image: library/mysql:8.0
+    image: mariadb:10.5
     restart: always
     networks:
       - local
     command: --default-authentication-plugin=mysql_native_password
     volumes:
-      - "${DATA_DIR}/database:/var/lib/mysql"
+      - "pterodactyl_database:/var/lib/mysql"
     environment:
       <<: *db-environment
       MYSQL_DATABASE: "panel"
@@ -60,10 +63,6 @@ services:
     links:
       - database
       - cache
-    volumes:
-      - "${DATA_DIR}/panel/var/:/app/var/"
-      - "${DATA_DIR}/panel/logs/:/app/storage/logs"
-      - "${DATA_DIR}/panel/nginx/:/etc/nginx/conf.d/"
     environment:
       <<: [*panel-environment, *mail-environment]
       DB_PASSWORD: *db-password
@@ -79,9 +78,10 @@ services:
       # HTTP
       - "traefik.http.routers.pterodactyl_panel.entrypoints=web"
       - "traefik.http.routers.pterodactyl_panel.rule=Host(`${PANEL_DOMAIN}`)"
+      - "traefik.http.services.pterodactyl_panel.loadbalancer.server.port=80"
+      # HTTPS - If you don't want HTTPS (using localhost as APP_URL), comment out the following lines
       - "traefik.http.routers.pterodactyl_panel.middlewares=panel_https"
       - "traefik.http.middlewares.panel_https.redirectscheme.scheme=https"
-      # HTTPS
       - "traefik.http.routers.pterodactyl_panel-https.entrypoints=websecure"
       - "traefik.http.routers.pterodactyl_panel-https.rule=Host(`${PANEL_DOMAIN}`)"
       - "traefik.http.routers.pterodactyl_panel-https.tls=true"
@@ -97,3 +97,7 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+
+volumes:
+  pterodactyl_database:
+    external: false

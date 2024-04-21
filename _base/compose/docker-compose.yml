@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-
   traefik:
     image: traefik:v3.0
     env_file:
@@ -12,10 +9,11 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # - "8080:8080" # Port for the dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DATA_DIR}/traefik/traefik.toml:/etc/traefik/traefik.toml
-      - ${DATA_DIR}/traefik/acme.json:/acme.json
+      - ./traefik.toml:/etc/traefik/traefik.toml
+      - ./acme.json:/acme.json
 
 networks:
   pterodactyl:

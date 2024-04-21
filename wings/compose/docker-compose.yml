@@ -1,17 +1,16 @@
-version: '3.8'
-
 services:
-
   wings:
-    image: ghcr.io/pterodactyl/wings:v1.6.4
+    image: ghcr.io/pterodactyl/wings:v1.11.1
     env_file:
       - .env
     restart: always
     networks:
       - pterodactyl
       - wings0
+    # If you want SFTP to be available, uncomment the following lines
     ports:
       - "2022:2022"
+      - "8081:8080"
     tty: true
     environment:
       TZ: "UTC"
@@ -23,21 +22,25 @@ services:
       - "/var/lib/docker/containers/:/var/lib/docker/containers/"
       - "/tmp/pterodactyl/:/tmp/pterodactyl/"
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
-      - "${DATA_DIR}/wings/etc/:/etc/pterodactyl/"
-      - "${DATA_DIR}/wings/logs:/var/log/pterodactyl/"
-      - "${SERVERS_DATA_FULL_PATH}:${SERVERS_DATA_FULL_PATH}"
+      - "./config.yml:/etc/pterodactyl/config.yml"
+      - "pterodactyl_wings:/var/log/pterodactyl/"
+      # NOTE: This path has to match the "Daemon Server File Directory" path you apply when creating a node in the panel!
+      # The default setting is "/var/lib/pterodactyl/", however this can be changed to something like:
+      # "/srv/docker/docker-pterodactyl/data/wings/lib/volumes" to store everything in one place, just make sure the paths in the panel and here match!
+      - "pterodactyl_wings:/var/lib/pterodactyl/"
     labels:
       # HTTP
       - "traefik.http.routers.pterodactyl_wings.entrypoints=web"
-      - "traefik.http.routers.pterodactyl_wings.rule=Host(`${WINGS_DOMAIN}`)"
-      - "traefik.http.routers.pterodactyl_wings.middlewares=wings_https"
-      - "traefik.http.middlewares.wings_https.redirectscheme.scheme=https"
-      # HTTPS
-      - "traefik.http.routers.pterodactyl_wings-https.entrypoints=websecure"
-      - "traefik.http.routers.pterodactyl_wings-https.rule=Host(`${WINGS_DOMAIN}`)"
-      - "traefik.http.routers.pterodactyl_wings-https.tls=true"
-      - "traefik.http.routers.pterodactyl_wings-https.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pterodactyl_wings-https.loadbalancer.server.port=443"
+      - "traefik.http.routers.pterodactyl_wings.rule=Host(`${WINGS_DOMAIN}`)" # Comment out if using localhost as WINGS_DOMAIN
+      - "traefik.http.services.pterodactyl_wings.loadbalancer.server.port=8080"
+      # HTTPS - If you don't want HTTPS (using localhost as WINGS_DOMAIN), comment out the following lines
+      #- "traefik.http.routers.pterodactyl_wings.middlewares=wings_https"
+      #- "traefik.http.middlewares.wings_https.redirectscheme.scheme=https"
+      #- "traefik.http.routers.pterodactyl_wings-https.entrypoints=websecure"
+      #- "traefik.http.routers.pterodactyl_wings-https.rule=Host(`${WINGS_DOMAIN}`)"
+      #- "traefik.http.routers.pterodactyl_wings-https.tls=true"
+      #- "traefik.http.routers.pterodactyl_wings-https.tls.certresolver=letsencrypt"
+      #- "traefik.http.services.pterodactyl_wings-https.loadbalancer.server.port=8080"
 
 networks:
   pterodactyl:
@@ -50,3 +53,7 @@ networks:
         - subnet: "172.21.0.0/16"
     driver_opts:
       com.docker.network.bridge.name: wings0
+
+volumes:
+  pterodactyl_wings:
+    external: true

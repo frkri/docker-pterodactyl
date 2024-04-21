@@ -1,0 +1,21 @@
+debug: false
+uuid: GENERATED_UUID
+token_id: GENERATED_TOKEN_ID
+token: GENERATED_TOKEN
+api:
+  host: 0.0.0.0
+  port: 8080
+  ssl:
+    enabled: false
+    cert: /etc/letsencrypt/live/localhost/fullchain.pem
+    key: /etc/letsencrypt/live/localhost/privkey.pem
+  upload_limit: 100
+system:
+  data: /var/lib/pterodactyl/volumes
+  sftp:
+    bind_port: 2023
+allowed_mounts: []
+allowed_origins:
+- '*'
+- http://localhost
+allow_cors_private_network: true

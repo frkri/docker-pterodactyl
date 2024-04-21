@@ -16,3 +16,8 @@
   storage = "acme.json"
   [certificatesResolvers.letsencrypt.acme.httpChallenge]
     entryPoint = "web"
+
+# Optional dashboard for debugging
+#[api]
+#  dashboard = true
+#  insecure = true
